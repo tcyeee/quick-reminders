@@ -14,21 +14,40 @@ npm run publish    # Publish to Raycast Store
 
 ## Architecture
 
-This is a [Raycast](https://raycast.com) extension with a single `no-view` command (`src/quickly-add-todo.ts`) that adds tasks directly to Apple Reminders via JXA/AppleScript through Raycast's API.
+A Raycast extension with a single `no-view` command. The user types a text string in Raycast; the extension parses prefix modifiers from it and creates a reminder in Apple Reminders via JXA (JavaScript for Automation).
 
-The command parses a text input string for prefix modifiers before delegating to the Reminders app:
+### Source files
 
-| Prefix | Effect |
-|--------|--------|
-| `!` / `!!` / `!!!` | Priority (low / medium / high) |
-| `@[date/time]` | Due date (`@tomorrow`, `@2026-03-16`, `@10:00`, etc.) |
-| `/[list]` | Target Reminders list |
-| `#[tag]` | Tag (multiple allowed) |
+```
+src/
+├── quickly-add-todo.ts   # Entry point: receives LaunchProps, orchestrates parse → add
+├── parse-input.ts        # Pure prefix parser, no side effects
+└── add-reminder.ts       # JXA integration with @raycast/utils runAppleScript
+```
 
-The remainder after stripping prefixes becomes the reminder title. Lists and tags are pre-fetched from Reminders for autocomplete.
+### Prefix syntax (any order, space-separated)
+
+| Prefix | Effect | Apple Reminders value |
+|--------|--------|-----------------------|
+| `!` / `!!` / `!!!` | Priority low / medium / high | `priority` 9 / 5 / 1 |
+| `@[date/time]` | Due date (bare `@` = today) | `dueDate` |
+| `/[list]` | Target list (falls back to default list) | `targetList` |
+| `#[tag]` | Tag — multiple allowed | `tags` array |
+
+Supported `@` date formats: `@today`, `@tomorrow`, `@10:00`, `@2026-03-16`, `@2026-03-16 15:33`.
+
+### parse-input.ts
+
+`parseInput(raw)` runs a `while` loop that consumes one prefix token per iteration using four regexes (`PRIORITY_PREFIX_RE`, `DATE_PREFIX_RE`, `LIST_PREFIX_RE`, `TAG_PREFIX_RE`). Whatever remains after all prefixes are consumed becomes the `title`. Returns `ParsedInput: { title, priority, dueDate, list, tags }`.
+
+`DATE_PREFIX_RE` handles the `@YYYY-MM-DD HH:MM` case (space inside the token) via an inner non-capturing group.
+
+### add-reminder.ts
+
+Uses `runAppleScript` from `@raycast/utils` (not `@raycast/api`) with `language: "JavaScript"` (JXA). All user-supplied values are passed as `argv` strings — never interpolated into the script — to avoid injection. Tags are set via `reminder.tags` inside a try/catch because the API requires macOS 12+.
 
 ## Key constraints
 
-- macOS only at runtime (Apple Reminders + JXA) — `platforms` in `package.json` also lists Windows but the Reminders integration won't work there.
-- No-view mode: the command runs silently and shows a HUD/toast; there is no UI rendered by React.
-- Uses `@raycast/api` and `@raycast/utils`; avoid adding heavyweight dependencies.
+- `runAppleScript` must be imported from `@raycast/utils`, not `@raycast/api`.
+- `no-view` mode: no React UI. User feedback via `showHUD` (success) and `showToast` (failure).
+- macOS only at runtime despite `platforms` listing Windows in `package.json`.
