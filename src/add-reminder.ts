@@ -1,35 +1,67 @@
 import { runAppleScript } from "@raycast/utils";
 import { ParsedInput } from "./parse-input";
 
-// Uses JXA (JavaScript for Automation) for richer Reminders API access.
+// Uses the EventKit ObjC bridge so we can set NSDateComponents without a time component.
+// When hour/minute are omitted from NSDateComponents, Reminders treats the reminder as
+// "date-only" (no time shown, no red overdue warning until end of day).
+//
+// The regular JXA Application("Reminders") API only accepts a full Date object,
+// which always includes a time — even midnight (00:00) is treated as a timed reminder.
 const JXA_SCRIPT = `
+ObjC.import('EventKit');
+
 function run(argv) {
   var title        = argv[0];
   var priority     = parseInt(argv[1]);
-  var dueDateMs    = argv[2];  // ms timestamp, or ""
-  var dueDateParts = argv[3];  // "YYYY,M,D" for date-only, or ""
+  var dueDateMs    = argv[2];  // ms timestamp for date+time, or ""
+  var dueDateParts = argv[3];  // "YYYY,M(0-based),D" for date-only, or ""
   var listName     = argv[4];  // list name, or ""
 
-  var app = Application("Reminders");
+  var EK_ENTITY_REMINDER = 1;
 
-  var reminderProps = { name: title, priority: priority };
+  var store = $.EKEventStore.new;  // no-arg ObjC methods are property access in JXA, not function calls
+  var reminder = $.EKReminder.reminderWithEventStore(store);
+
+  reminder.title = $(title);
+  reminder.priority = priority;
+
   if (dueDateParts) {
-    var p = dueDateParts.split(",");
-    reminderProps.dueDate = new Date(parseInt(p[0]), parseInt(p[1]), parseInt(p[2]));
+    // Date-only: NSDateComponents without hour/minute → Reminders shows date with no time,
+    // no red overdue warning until the day ends.
+    var p = dueDateParts.split(',');
+    var comps = $.NSDateComponents.new;
+    comps.year  = parseInt(p[0]);
+    comps.month = parseInt(p[1]) + 1; // JS getMonth() is 0-based; NSDateComponents is 1-based
+    comps.day   = parseInt(p[2]);
+    reminder.dueDateComponents = comps;
   } else if (dueDateMs) {
-    reminderProps.dueDate = new Date(parseInt(dueDateMs));
+    // Date + time: include hour and minute.
+    var d = new Date(parseInt(dueDateMs));
+    var comps = $.NSDateComponents.new;
+    comps.year   = d.getFullYear();
+    comps.month  = d.getMonth() + 1;
+    comps.day    = d.getDate();
+    comps.hour   = d.getHours();
+    comps.minute = d.getMinutes();
+    reminder.dueDateComponents = comps;
   }
 
-  var targetList = app.defaultList;
+  // Find target list (EventKit calendar).
+  var targetCalendar = store.defaultCalendarForNewReminders;
   if (listName) {
-    var matches = app.lists.whose({ name: listName });
-    if (matches.length > 0) targetList = matches[0];
+    var calendars = store.calendarsForEntityType(EK_ENTITY_REMINDER);
+    for (var i = 0; i < calendars.count; i++) {
+      var cal = calendars.objectAtIndex(i);
+      if (ObjC.unwrap(cal.title) === listName) {
+        targetCalendar = cal;
+        break;
+      }
+    }
   }
+  reminder.calendar = targetCalendar;
 
-
-  // NOTE: Apple has never exposed tags in the Reminders scripting dictionary.
-  // tagNames is not a valid property — tag support via JXA/AppleScript does not exist.
-  app.make({ new: "reminder", at: targetList, withProperties: reminderProps });
+  // NOTE: Apple has never exposed tags in the Reminders/EventKit scripting APIs.
+  store.saveReminderCommitError(reminder, true, null);
 }
 `;
 
@@ -40,7 +72,7 @@ export async function addReminder({ title, priority, dueDate, dueDateHasTime, li
       ? `${dueDate.getFullYear()},${dueDate.getMonth()},${dueDate.getDate()}`
       : "";
 
-  await runAppleScript(JXA_SCRIPT, [title, String(priority), dueDateMs, dueDateParts, list ?? "", tags.join(",")], {
+  await runAppleScript(JXA_SCRIPT, [title, String(priority), dueDateMs, dueDateParts, list ?? ""], {
     language: "JavaScript",
   });
 }

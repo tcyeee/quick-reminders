@@ -28,41 +28,52 @@ export default function AddReminderView() {
 
   const parsed = parseInput(text);
 
-  // Detect a partial /xxx token at the END of the input (user still typing the list name).
-  // Only activate when the parser also sees a list prefix (parsed.list matches),
-  // or when the user just typed "/" with nothing after it yet.
-  const partialListMatch = text.match(/(\/\S*)$/);
-  const partialListToken = partialListMatch ? partialListMatch[1] : null;
-  const listQuery = partialListToken ? partialListToken.slice(1).toLowerCase() : null;
+  // ── List autocomplete ──────────────────────────────────────────────────────
+  // Detect the LAST /xxx token anywhere in the text so "/" can be typed anywhere.
+  // Greedy .* ensures we match the rightmost occurrence.
+  const lastListTokenMatch = text.match(/.*(\/\S*)/);
+  const lastListToken = lastListTokenMatch ? lastListTokenMatch[1] : null;
+  const listQuery = lastListToken ? lastListToken.slice(1).toLowerCase() : null;
 
-  const showListSuggestions =
-    partialListToken !== null &&
-    (partialListToken === "/" || (parsed.list !== null && parsed.list === partialListToken.slice(1)));
-
-  const listSuggestions = showListSuggestions
-    ? lists.filter(
-        (l) => l.toLowerCase().startsWith(listQuery ?? "") && l.toLowerCase() !== (listQuery ?? ""),
-      )
-    : [];
+  const listSuggestions =
+    lastListToken !== null
+      ? lists.filter((l) => l.toLowerCase().startsWith(listQuery ?? "") && l.toLowerCase() !== (listQuery ?? ""))
+      : [];
 
   function completeList(listName: string) {
-    setText(text.replace(/(\/\S*)$/, `/${listName} `));
+    if (!lastListToken) return;
+    const idx = text.lastIndexOf(lastListToken);
+    // Remove the /xxx token from its current position and clean up spaces.
+    let rest = (text.slice(0, idx) + text.slice(idx + lastListToken.length))
+      .replace(/\s+/g, " ")
+      .trim();
+    // Replace any existing list prefix already sitting at the front.
+    rest = rest.replace(/^\/\S+\s*/, "").trim();
+    setText(`/${listName} ${rest}`.trim());
   }
 
-  // ── Date autocomplete ────────────────────────────────────────────────────────
+  // ── Date autocomplete ──────────────────────────────────────────────────────
   const DATE_NAMED = ["today", "tomorrow"];
 
-  const partialDateMatch = text.match(/(@\S*)$/);
-  const partialDateToken = partialDateMatch ? partialDateMatch[1] : null;
-  const dateQuery = partialDateToken ? partialDateToken.slice(1).toLowerCase() : null;
+  // Detect the LAST @xxx token anywhere in the text.
+  const lastDateTokenMatch = text.match(/.*(@\S*)/);
+  const lastDateToken = lastDateTokenMatch ? lastDateTokenMatch[1] : null;
+  const dateQuery = lastDateToken ? lastDateToken.slice(1).toLowerCase() : null;
 
   const dateSuggestions =
-    partialDateToken !== null
+    lastDateToken !== null
       ? DATE_NAMED.filter((d) => d.startsWith(dateQuery ?? "") && d !== dateQuery)
       : [];
 
   function completeDate(suggestion: string) {
-    setText(text.replace(/(@\S*)$/, `@${suggestion} `));
+    if (!lastDateToken) return;
+    const idx = text.lastIndexOf(lastDateToken);
+    let rest = (text.slice(0, idx) + text.slice(idx + lastDateToken.length))
+      .replace(/\s+/g, " ")
+      .trim();
+    // Replace any existing date prefix already sitting at the front.
+    rest = rest.replace(/^@\S+\s*/, "").trim();
+    setText(`@${suggestion} ${rest}`.trim());
   }
 
   function applyChange(patch: Partial<typeof parsed>) {
