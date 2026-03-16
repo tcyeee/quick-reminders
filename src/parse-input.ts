@@ -5,6 +5,7 @@ export interface ParsedInput {
   title: string;
   priority: ReminderPriority;
   dueDate: Date | null;
+  dueDateHasTime: boolean; // false → date-only (@today/@tomorrow/@YYYY-MM-DD); true → explicit time
   list: string | null;
   tags: string[];
 }
@@ -21,42 +22,54 @@ const PRIORITY_PREFIX_RE = /^(!{1,3})(?:\s+|$)/;
 const LIST_PREFIX_RE = /^\/(\S+)(?:\s+|$)/;
 const TAG_PREFIX_RE = /^#(\S+)(?:\s+|$)/;
 
-function parseDueDateStr(dateStr: string): Date {
+interface ParsedDate {
+  date: Date;
+  hasTime: boolean;
+}
+
+function parseDueDateStr(dateStr: string): ParsedDate {
   const now = new Date();
 
   if (!dateStr || dateStr === "today") {
-    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return { date: new Date(now.getFullYear(), now.getMonth(), now.getDate()), hasTime: false };
   }
 
   if (dateStr === "tomorrow") {
-    return new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    return { date: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1), hasTime: false };
   }
 
   // @10:00 — today at specific time
   const timeOnly = dateStr.match(/^(\d{1,2}):(\d{2})$/);
   if (timeOnly) {
-    return new Date(now.getFullYear(), now.getMonth(), now.getDate(), +timeOnly[1], +timeOnly[2]);
+    return {
+      date: new Date(now.getFullYear(), now.getMonth(), now.getDate(), +timeOnly[1], +timeOnly[2]),
+      hasTime: true,
+    };
   }
 
   // @2026-03-16 15:33
   const dateTime = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{1,2}):(\d{2})$/);
   if (dateTime) {
-    return new Date(+dateTime[1], +dateTime[2] - 1, +dateTime[3], +dateTime[4], +dateTime[5]);
+    return {
+      date: new Date(+dateTime[1], +dateTime[2] - 1, +dateTime[3], +dateTime[4], +dateTime[5]),
+      hasTime: true,
+    };
   }
 
   // @2026-03-16
   const dateOnly = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (dateOnly) {
-    return new Date(+dateOnly[1], +dateOnly[2] - 1, +dateOnly[3]);
+    return { date: new Date(+dateOnly[1], +dateOnly[2] - 1, +dateOnly[3]), hasTime: false };
   }
 
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return { date: new Date(now.getFullYear(), now.getMonth(), now.getDate()), hasTime: false };
 }
 
 export function parseInput(raw: string): ParsedInput {
   let rest = raw.trim();
   let priority: ReminderPriority = 0;
   let dueDate: Date | null = null;
+  let dueDateHasTime = false;
   let list: string | null = null;
   const tags: string[] = [];
 
@@ -71,7 +84,9 @@ export function parseInput(raw: string): ParsedInput {
       rest = rest.slice(m[0].length).trimStart();
       changed = true;
     } else if ((m = rest.match(DATE_PREFIX_RE))) {
-      dueDate = parseDueDateStr((m[1] ?? "today").trim());
+      const parsed = parseDueDateStr((m[1] ?? "today").trim());
+      dueDate = parsed.date;
+      dueDateHasTime = parsed.hasTime;
       rest = rest.slice(m[0].length).trimStart();
       changed = true;
     } else if ((m = rest.match(LIST_PREFIX_RE))) {
@@ -85,5 +100,5 @@ export function parseInput(raw: string): ParsedInput {
     }
   }
 
-  return { title: rest, priority, dueDate, list, tags };
+  return { title: rest, priority, dueDate, dueDateHasTime, list, tags };
 }
