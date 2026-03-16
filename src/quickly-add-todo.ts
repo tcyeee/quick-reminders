@@ -1,4 +1,5 @@
-import { LaunchProps, showHUD, showToast, Toast, runAppleScript } from "@raycast/api";
+import { LaunchProps, showHUD, showToast, Toast } from "@raycast/api";
+import { runAppleScript } from "@raycast/utils";
 
 export default async function Command(props: LaunchProps<{ arguments: { text: string } }>) {
   const title = props.arguments.text.trim();
@@ -8,14 +9,14 @@ export default async function Command(props: LaunchProps<{ arguments: { text: st
     return;
   }
 
-  // Escape backslashes and quotes for AppleScript string safety
-  const escaped = title.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-
-  await runAppleScript(`
-    tell application "Reminders"
-      make new reminder with properties {name: "${escaped}"}
-    end tell
-  `);
+  await runAppleScript(
+    `on run argv
+      tell application "Reminders"
+        make new reminder with properties {name: item 1 of argv}
+      end tell
+    end run`,
+    [title],
+  );
 
   await showHUD(`Added: ${title}`);
 }
