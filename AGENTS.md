@@ -33,7 +33,7 @@ Changes go in `add-reminder.ts`. The JXA script string (`JXA_SCRIPT`) receives a
 
 - `runAppleScript` comes from `@raycast/utils`, **not** `@raycast/api`. Importing from `@raycast/api` causes a runtime `is not a function` error.
 - The JXA script must use `language: "JavaScript"` in the options object.
-- Tags (`reminder.tags`) require macOS 12+; wrap in try/catch.
+- **Tags cannot be set via JXA/AppleScript.** Apple has never exposed tags in the Reminders scripting dictionary (`.sdef`). `tagNames` is not a valid property — any attempt silently fails. The `#tag` prefix is parsed and stored in `ParsedInput.tags` but is not passed to `add-reminder.ts`.
 - `no-view` commands show no UI — use `showHUD` for success and `showToast` for errors (both from `@raycast/api`).
 
 ## Do not

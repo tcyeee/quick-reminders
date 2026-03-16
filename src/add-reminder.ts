@@ -8,7 +8,6 @@ function run(argv) {
   var priority   = parseInt(argv[1]);
   var dueDateMs  = argv[2];          // ms timestamp string, or ""
   var listName   = argv[3];          // list name, or ""
-  var tagNames   = argv[4] ? argv[4].split(",").filter(function(t) { return t.length > 0; }) : [];
 
   var app = Application("Reminders");
 
@@ -23,17 +22,9 @@ function run(argv) {
     if (matches.length > 0) targetList = matches[0];
   }
 
-  var reminder = app.Reminder(reminderProps);
-
-  if (tagNames.length > 0) {
-    try {
-      reminder.tags = tagNames.map(function(name) { return app.Tag({ name: name }); });
-    } catch (_) {
-      // Tags API unavailable on this macOS version — skip silently.
-    }
-  }
-
-  targetList.reminders.push(reminder);
+  // NOTE: Apple has never exposed tags in the Reminders scripting dictionary.
+  // tagNames is not a valid property — tag support via JXA/AppleScript does not exist.
+  app.make({ new: "reminder", at: targetList, withProperties: reminderProps });
 }
 `;
 
