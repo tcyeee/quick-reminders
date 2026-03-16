@@ -6,7 +6,7 @@ Quickly add tasks to Apple Reminders without opening the Reminders app.
 
 Type a task title in Raycast and it will be added to Apple Reminders instantly.
 
-**Example:** `完成软件的登录功能` → adds a reminder titled "完成软件的登录功能"
+**Example:** `Complete the login functionality of the software.` → adds a reminder titled "Complete the login functionality of the software."
 
 You can prefix the task with one or more modifiers (separated by spaces) to control priority, due date, list, and tags. The extension pre-fetches your Reminders lists and tags for autocomplete.
 

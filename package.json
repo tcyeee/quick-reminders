@@ -20,7 +20,15 @@
       "title": "Quickly Add Todo",
       "subtitle": "Quickly add tasks to Apple Reminders without opening the Reminders app.",
       "description": "",
-      "mode": "no-view"
+      "mode": "no-view",
+      "arguments": [
+        {
+          "name": "text",
+          "placeholder": "Task title",
+          "type": "text",
+          "required": true
+        }
+      ]
     }
   ],
   "dependencies": {
