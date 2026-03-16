@@ -29,6 +29,13 @@
           "required": true
         }
       ]
+    },
+    {
+      "name": "add-reminder-view",
+      "title": "Add Reminder",
+      "subtitle": "Apple Reminders",
+      "description": "Add a reminder using a form with real-time prefix parsing.",
+      "mode": "view"
     }
   ],
   "dependencies": {

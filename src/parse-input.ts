@@ -65,6 +65,34 @@ function parseDueDateStr(dateStr: string): ParsedDate {
   return { date: new Date(now.getFullYear(), now.getMonth(), now.getDate()), hasTime: false };
 }
 
+const PRIORITY_PREFIX: Record<number, string> = { 1: "!!!", 5: "!!", 9: "!" };
+
+/** Reconstruct a raw prefix string from a ParsedInput (reverse of parseInput). */
+export function reconstructInput({ title, priority, dueDate, dueDateHasTime, list, tags }: ParsedInput): string {
+  const parts: string[] = [];
+
+  if (priority && PRIORITY_PREFIX[priority]) parts.push(PRIORITY_PREFIX[priority]);
+
+  if (dueDate) {
+    const y = dueDate.getFullYear();
+    const mo = String(dueDate.getMonth() + 1).padStart(2, "0");
+    const d = String(dueDate.getDate()).padStart(2, "0");
+    if (dueDateHasTime) {
+      const h = String(dueDate.getHours()).padStart(2, "0");
+      const mi = String(dueDate.getMinutes()).padStart(2, "0");
+      parts.push(`@${y}-${mo}-${d} ${h}:${mi}`);
+    } else {
+      parts.push(`@${y}-${mo}-${d}`);
+    }
+  }
+
+  if (list) parts.push(`/${list}`);
+  for (const tag of tags) parts.push(`#${tag}`);
+  if (title) parts.push(title);
+
+  return parts.join(" ");
+}
+
 export function parseInput(raw: string): ParsedInput {
   let rest = raw.trim();
   let priority: ReminderPriority = 0;
