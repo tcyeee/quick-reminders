@@ -20,7 +20,7 @@ const PRIORITY_MAP: Record<string, ReminderPriority> = {
 const DATE_PREFIX_RE = /^@(today|tomorrow|\d{1,2}:\d{2}|\d{4}-\d{2}-\d{2}(?:\s+\d{1,2}:\d{2})?)?(?:\s+|$)/;
 const PRIORITY_PREFIX_RE = /^(!{1,3})(?:\s+|$)/;
 const LIST_PREFIX_RE = /^\/(\S+)(?:\s+|$)/;
-const TAG_PREFIX_RE = /^#(\S+)(?:\s+|$)/;
+const TAG_RE = /#(\S+)/g;
 
 interface ParsedDate {
   date: Date;
@@ -68,7 +68,7 @@ function parseDueDateStr(dateStr: string): ParsedDate {
 const PRIORITY_PREFIX: Record<number, string> = { 1: "!!!", 5: "!!", 9: "!" };
 
 /** Reconstruct a raw prefix string from a ParsedInput (reverse of parseInput). */
-export function reconstructInput({ title, priority, dueDate, dueDateHasTime, list, tags }: ParsedInput): string {
+export function reconstructInput({ title, priority, dueDate, dueDateHasTime, list }: ParsedInput): string {
   const parts: string[] = [];
 
   if (priority && PRIORITY_PREFIX[priority]) parts.push(PRIORITY_PREFIX[priority]);
@@ -87,7 +87,6 @@ export function reconstructInput({ title, priority, dueDate, dueDateHasTime, lis
   }
 
   if (list) parts.push(`/${list}`);
-  for (const tag of tags) parts.push(`#${tag}`);
   if (title) parts.push(title);
 
   return parts.join(" ");
@@ -99,7 +98,6 @@ export function parseInput(raw: string): ParsedInput {
   let dueDate: Date | null = null;
   let dueDateHasTime = false;
   let list: string | null = null;
-  const tags: string[] = [];
 
   // Each iteration consumes one prefix token; loop until no more prefixes found.
   let m: RegExpMatchArray | null;
@@ -121,12 +119,11 @@ export function parseInput(raw: string): ParsedInput {
       list = m[1];
       rest = rest.slice(m[0].length).trimStart();
       changed = true;
-    } else if ((m = rest.match(TAG_PREFIX_RE))) {
-      tags.push(m[1]);
-      rest = rest.slice(m[0].length).trimStart();
-      changed = true;
     }
   }
+
+  // Tags are kept in the title; extract them here only for history/autocomplete purposes.
+  const tags = [...rest.matchAll(TAG_RE)].map((match) => match[1]);
 
   return { title: rest, priority, dueDate, dueDateHasTime, list, tags };
 }

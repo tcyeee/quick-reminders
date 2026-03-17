@@ -4,6 +4,7 @@ import { useState } from "react";
 import { parseInput, reconstructInput, ReminderPriority } from "./parse-input";
 import { addReminder } from "./add-reminder";
 import { getReminderLists } from "./get-reminder-lists";
+import { getTagHistory, saveTagsToHistory, removeTagFromHistory } from "./tag-history";
 
 const PRIORITY_OPTIONS: { value: string; title: string }[] = [
   { value: "0", title: "None" },
@@ -25,6 +26,7 @@ export default function AddReminderView() {
   const [text, setText] = useState("");
   const { pop } = useNavigation();
   const { data: lists = [] } = useCachedPromise(getReminderLists);
+  const { data: tagHistory = [], revalidate: revalidateTagHistory } = useCachedPromise(getTagHistory);
 
   const parsed = parseInput(text);
 
@@ -44,12 +46,10 @@ export default function AddReminderView() {
     if (!lastListToken) return;
     const idx = text.lastIndexOf(lastListToken);
     // Remove the /xxx token from its current position and clean up spaces.
-    let rest = (text.slice(0, idx) + text.slice(idx + lastListToken.length))
-      .replace(/\s+/g, " ")
-      .trim();
+    let rest = (text.slice(0, idx) + text.slice(idx + lastListToken.length)).replace(/\s+/g, " ").trim();
     // Replace any existing list prefix already sitting at the front.
     rest = rest.replace(/^\/\S+\s*/, "").trim();
-    setText(`/${listName} ${rest}`.trim());
+    setText(`/${listName} ${rest}`.trimStart());
   }
 
   // ── Date autocomplete ──────────────────────────────────────────────────────
@@ -61,19 +61,32 @@ export default function AddReminderView() {
   const dateQuery = lastDateToken ? lastDateToken.slice(1).toLowerCase() : null;
 
   const dateSuggestions =
-    lastDateToken !== null
-      ? DATE_NAMED.filter((d) => d.startsWith(dateQuery ?? "") && d !== dateQuery)
-      : [];
+    lastDateToken !== null ? DATE_NAMED.filter((d) => d.startsWith(dateQuery ?? "") && d !== dateQuery) : [];
 
   function completeDate(suggestion: string) {
     if (!lastDateToken) return;
     const idx = text.lastIndexOf(lastDateToken);
-    let rest = (text.slice(0, idx) + text.slice(idx + lastDateToken.length))
-      .replace(/\s+/g, " ")
-      .trim();
+    let rest = (text.slice(0, idx) + text.slice(idx + lastDateToken.length)).replace(/\s+/g, " ").trim();
     // Replace any existing date prefix already sitting at the front.
     rest = rest.replace(/^@\S+\s*/, "").trim();
-    setText(`@${suggestion} ${rest}`.trim());
+    setText(`@${suggestion} ${rest}`.trimStart());
+  }
+
+  // ── Tag autocomplete ───────────────────────────────────────────────────────
+  // Detect the LAST #xxx token anywhere in the text.
+  const lastTagTokenMatch = text.match(/.*(#\S*)/);
+  const lastTagToken = lastTagTokenMatch ? lastTagTokenMatch[1] : null;
+  const tagQuery = lastTagToken ? lastTagToken.slice(1).toLowerCase() : null;
+
+  const tagSuggestions =
+    lastTagToken !== null
+      ? tagHistory.filter((t) => t.toLowerCase().startsWith(tagQuery ?? "") && t.toLowerCase() !== (tagQuery ?? ""))
+      : [];
+
+  function completeTag(tagName: string) {
+    if (!lastTagToken) return;
+    const idx = text.lastIndexOf(lastTagToken);
+    setText((text.slice(0, idx) + `#${tagName} ` + text.slice(idx + lastTagToken.length)).replace(/\s+/g, " ").trimStart());
   }
 
   function applyChange(patch: Partial<typeof parsed>) {
@@ -86,6 +99,7 @@ export default function AddReminderView() {
       return;
     }
     await addReminder(parsed);
+    if (parsed.tags.length > 0) await saveTagsToHistory(parsed.tags);
     await showHUD(`Added: ${parsed.title}`);
     pop();
   }
@@ -140,6 +154,34 @@ export default function AddReminderView() {
               actions={
                 <ActionPanel>
                   <Action title={`Use @${d}`} onAction={() => completeDate(d)} />
+                  {addAction}
+                </ActionPanel>
+              }
+            />
+          ))}
+        </List.Section>
+      )}
+
+      {/* ── Tag autocomplete (↩ to select, ⌘⌫ to remove from history) ── */}
+      {tagSuggestions.length > 0 && (
+        <List.Section title="Complete Tag  ·  ↩ to select  ·  ⌘⌫ to remove">
+          {tagSuggestions.map((t) => (
+            <List.Item
+              key={t}
+              title={`#${t}`}
+              icon={{ source: Icon.Hashtag, tintColor: Color.Green }}
+              actions={
+                <ActionPanel>
+                  <Action title={`Use #${t}`} onAction={() => completeTag(t)} />
+                  <Action
+                    title="Remove from History"
+                    icon={Icon.Trash}
+                    shortcut={{ modifiers: ["cmd"], key: "delete" }}
+                    onAction={async () => {
+                      await removeTagFromHistory(t);
+                      revalidateTagHistory();
+                    }}
+                  />
                   {addAction}
                 </ActionPanel>
               }
@@ -213,19 +255,28 @@ export default function AddReminderView() {
                 <Action
                   title="Today"
                   onAction={() =>
-                    applyChange({ dueDate: new Date(today.getFullYear(), today.getMonth(), today.getDate()), dueDateHasTime: false })
+                    applyChange({
+                      dueDate: new Date(today.getFullYear(), today.getMonth(), today.getDate()),
+                      dueDateHasTime: false,
+                    })
                   }
                 />
-                <Action
-                  title="Tomorrow"
-                  onAction={() => applyChange({ dueDate: tomorrow, dueDateHasTime: false })}
-                />
+                <Action title="Tomorrow" onAction={() => applyChange({ dueDate: tomorrow, dueDateHasTime: false })} />
                 <Action title="Clear" onAction={() => applyChange({ dueDate: null, dueDateHasTime: false })} />
               </ActionPanel.Section>
               {addAction}
             </ActionPanel>
           }
         />
+        {/* Tags */}
+        {parsed.tags.length > 0 && (
+          <List.Item
+            title={parsed.tags.map((t) => `#${t}`).join("  ")}
+            subtitle="Tags (display only)"
+            icon={{ source: Icon.Hashtag, tintColor: Color.Green }}
+            actions={<ActionPanel>{addAction}</ActionPanel>}
+          />
+        )}
       </List.Section>
     </List>
   );

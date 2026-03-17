@@ -65,12 +65,16 @@ function run(argv) {
 }
 `;
 
-export async function addReminder({ title, priority, dueDate, dueDateHasTime, list, tags }: ParsedInput): Promise<void> {
+export async function addReminder({
+  title,
+  priority,
+  dueDate,
+  dueDateHasTime,
+  list,
+}: Omit<ParsedInput, "tags">): Promise<void> {
   const dueDateMs = dueDate && dueDateHasTime ? String(dueDate.getTime()) : "";
   const dueDateParts =
-    dueDate && !dueDateHasTime
-      ? `${dueDate.getFullYear()},${dueDate.getMonth()},${dueDate.getDate()}`
-      : "";
+    dueDate && !dueDateHasTime ? `${dueDate.getFullYear()},${dueDate.getMonth()},${dueDate.getDate()}` : "";
 
   await runAppleScript(JXA_SCRIPT, [title, String(priority), dueDateMs, dueDateParts, list ?? ""], {
     language: "JavaScript",
