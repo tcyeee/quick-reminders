@@ -18,6 +18,7 @@ Raycast extension with two commands that add tasks to Apple Reminders:
 | `src/parse-input.ts` | Pure parsing — `parseInput()`, `reconstructInput()`, `ParsedInput` interface |
 | `src/add-reminder.ts` | Reminders integration — EventKit ObjC bridge via `runAppleScript` |
 | `src/get-reminder-lists.ts` | Fetches Reminders list names via JXA for dropdown/autocomplete |
+| `src/tag-history.ts` | `LocalStorage` helpers — `getTagHistory`, `saveTagsToHistory`, `removeTagFromHistory` |
 
 ## Extending the parser
 
@@ -27,6 +28,8 @@ Only touch `parse-input.ts`:
 2. Define a regex constant (`/^PREFIX_PATTERN(?:\s+|$)/`).
 3. Add an `else if` branch in the `while (changed)` loop in `parseInput`.
 4. Handle the new field in `reconstructInput`.
+
+Note: `#tag` is intentionally **not** in the parser loop — tags stay in `title` as plain text and are extracted after the loop via `/#(\S+)/g` for history/autocomplete purposes only.
 
 ## Extending the Reminders integration
 
@@ -38,22 +41,25 @@ Only touch `add-reminder.ts`. The EventKit ObjC script receives data through `ar
 - The script uses `language: "JavaScript"` (JXA) with `ObjC.import('EventKit')`.
 - **ObjC no-arg methods are property access, not function calls**: `$.EKEventStore.new` ✓ / `$.EKEventStore.new()` ✗. Calling them as functions causes `TypeError: Object is not a function`.
 - **Date-only reminders**: pass year/month/day via `dueDateParts` (`"YYYY,M(0-based),D"`); the JXA script sets `NSDateComponents` without `hour`/`minute` so Reminders treats it as all-day (no red overdue warning). Do not pass a timestamp for date-only — even midnight triggers the overdue warning.
-- **Tags cannot be set** via any Apple scripting or EventKit API. The `#tag` prefix is parsed into `ParsedInput.tags` but is never passed to `add-reminder.ts`. Do not attempt to implement this.
+- **Tags cannot be set** via any Apple scripting or EventKit API. `#tag` tokens are kept in the reminder title as plain text (e.g. `#app #web Buy milk`). `ParsedInput.tags` is populated by a post-loop scan of the title and is used only for autocomplete history — it is never passed to `add-reminder.ts`.
 
 ## Autocomplete logic (add-reminder-view.tsx)
 
-List and date autocomplete uses greedy regex to find the **last** occurrence of a token anywhere in `text`:
+All three autocomplete types use greedy regex to find the **last** token of that type anywhere in `text`:
 
 ```
 list  /.*(\/\S*)/   → lastListToken
 date  /.*(@\S*)/    → lastDateToken
+tag   /.*(#\S*)/    → lastTagToken
 ```
 
-On selection the token is spliced out of its current position and the completed prefix is prepended to the front of the string. An existing prefix of the same type at the front is replaced. This means `/` or `@` can be typed anywhere — the result always ends up at the front.
+**List and date**: on selection the token is spliced out and the completed prefix is prepended to the front; an existing prefix of the same type at the front is replaced. `/` or `@` can be typed anywhere — the result always ends up at the front.
+
+**Tag**: on selection the token is replaced **in-place** with the completed tag + a space. The tag is not moved to the front because multiple tags are allowed and order within the title matters. Tag suggestions come from `tag-history.ts` (LocalStorage, max 50, latest-first). Each suggestion has a `⌘⌫` action to remove it from history.
 
 ## Do not
 
 - Interpolate user input into JXA/ObjC script strings.
 - Call ObjC no-arg methods with `()` (causes runtime crash).
-- Attempt tag support — it does not exist in Apple's scripting APIs.
+- Try to set tags via Apple scripting APIs — it does not work. Tags live in the title only.
 - Add React `<Form>` components to the view command — it uses `<List>` intentionally for search-bar-based autocomplete.

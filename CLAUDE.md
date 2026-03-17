@@ -24,7 +24,8 @@ src/
 ├── add-reminder-view.tsx   # Command 2 (view): List-based form with live prefix parsing
 ├── parse-input.ts          # Pure prefix parser — parseInput() + reconstructInput()
 ├── add-reminder.ts         # EventKit ObjC bridge via runAppleScript (language: "JavaScript")
-└── get-reminder-lists.ts   # JXA helper — returns list names from Reminders for autocomplete
+├── get-reminder-lists.ts   # JXA helper — returns list names from Reminders for autocomplete
+└── tag-history.ts          # LocalStorage helper — getTagHistory / saveTagsToHistory / removeTagFromHistory
 ```
 
 ### Prefix syntax
@@ -34,15 +35,15 @@ src/
 | `!` / `!!` / `!!!` | Priority low / medium / high | EKReminder priority 9 / 5 / 1 |
 | `@[date/time]` | Due date (bare `@` = today) | `dueDateComponents` |
 | `/[list]` | Target list (falls back to default) | `EKCalendar` |
-| `#[tag]` | Parsed but silently ignored (Apple limitation) | — |
+| `#[tag]` | Kept in title as-is (Apple scripting cannot set tags) | reminder title |
 
 Supported `@` formats: `@today`, `@tomorrow`, `@10:00`, `@2026-03-16`, `@2026-03-16 15:33`.
 
 ### parse-input.ts
 
-`parseInput(raw)` runs a `while` loop consuming one prefix token per iteration via four regexes. Returns `ParsedInput: { title, priority, dueDate, dueDateHasTime, list, tags }`.
+`parseInput(raw)` runs a `while` loop consuming one prefix token per iteration via **three** regexes (`!`, `@`, `/`). `#tag` tokens are **not** consumed — they remain in the title. After the loop, tags are extracted from the title via a separate `/#(\S+)/g` scan and returned in `tags[]` for history/autocomplete purposes only. Returns `ParsedInput: { title, priority, dueDate, dueDateHasTime, list, tags }`.
 
-`reconstructInput(parsed)` is the exact inverse — rebuilds the raw prefix string from a `ParsedInput`. Used by `add-reminder-view.tsx` to sync field changes back to the search bar text.
+`reconstructInput(parsed)` rebuilds the raw prefix string from a `ParsedInput`. Tags are already embedded in `title`, so they are not added separately. Used by `add-reminder-view.tsx` to sync field changes back to the search bar text.
 
 `dueDateHasTime: false` for `@today` / `@tomorrow` / `@YYYY-MM-DD` (date-only); `true` for formats that include a time.
 
@@ -59,7 +60,11 @@ Uses `runAppleScript` from `@raycast/utils` with `language: "JavaScript"` and th
 
 List-based view (`<List searchText={text} filtering={false}>`). `text` is the single source of truth; everything is derived from `parseInput(text)`.
 
-**Autocomplete**: detects the **last** `/\S*` or `@\S*` token anywhere in `text` via greedy regex (`/.*(\/\S*)/`, `/.*/(@\S*)/`). On selection the token is removed from its position and the completed prefix is prepended to the front. Both list and date completions replace any existing prefix of the same type already at the front.
+**Autocomplete**: detects the **last** `/\S*`, `@\S*`, or `#\S*` token anywhere in `text` via greedy regex (`/.*(\/\S*)/`, `/.*(@\S*)/`, `/.*(#\S*)/`).
+- List and date: token is removed from its position and the completed prefix is prepended to the front; an existing prefix of the same type at the front is replaced.
+- Tag: token is replaced **in-place** (no front-placement) with the completed tag followed by a space. Multiple tags are allowed so there is no "replace existing" step.
+
+**Tag history** (`tag-history.ts`): on every successful submit, `tags[]` from `ParsedInput` are saved to `LocalStorage` (latest-first, max 50). In the tag autocomplete section each suggestion has a `⌘⌫` action to remove it from history.
 
 **Field interaction**: each parsed-preview row has an `ActionPanel` whose actions call `applyChange(patch)` → `reconstructInput` → `setText`.
 
@@ -67,6 +72,6 @@ List-based view (`<List searchText={text} filtering={false}>`). `text` is the si
 
 - `runAppleScript` must be imported from `@raycast/utils`, not `@raycast/api`.
 - ObjC bridge: no-argument methods are **property access** (no `()`): `$.EKEventStore.new`, `$.NSDateComponents.new`.
-- Tags cannot be set via any Apple scripting API — do not attempt.
+- Tags cannot be set via any Apple scripting API. `#tag` tokens are kept in the reminder title as plain text instead.
 - `no-view` command: feedback via `showHUD` / `showToast` only; no React rendering.
 - macOS only at runtime despite `platforms` listing Windows in `package.json`.
