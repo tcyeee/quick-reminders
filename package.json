@@ -7,8 +7,7 @@
   "author": "tcyeee",
   "owner": "pixelpup",
   "platforms": [
-    "macOS",
-    "Windows"
+    "macOS"
   ],
   "categories": [
     "Productivity"
@@ -17,7 +16,7 @@
   "commands": [
     {
       "name": "quickly-add-todo",
-      "title": "Quickly Add Todo",
+      "title": "Quickly Add Task to Reminders",
       "subtitle": "Apple Reminders",
       "description": "Quickly add tasks to Apple Reminders without opening the Reminders app.",
       "mode": "no-view",
@@ -32,7 +31,7 @@
     },
     {
       "name": "add-reminder-view",
-      "title": "Add Reminder",
+      "title": "Add Task to Reminders",
       "subtitle": "Apple Reminders",
       "description": "Add a reminder using a form with real-time prefix parsing.",
       "mode": "view"
