@@ -8,14 +8,14 @@ Quickly add tasks to Apple Reminders without opening the Reminders app.
 
 Type a task string directly in Raycast — the reminder is created instantly with no extra screen.
 
-**Example:** `!! @tomorrow /Work 完成登录功能` → high-priority reminder due tomorrow in the Work list.
+**Example:** `!! @tomorrow /Work Finish login feature` → high-priority reminder due tomorrow in the Work list.
 
 ### Add Reminder (form view)
 
 Opens a dedicated form with a free-text input at the top and a live-parsed preview below. Both sides stay in sync: editing the text updates the fields; tapping a field rewrites the text.
 
 - **Priority / List / Due Date** rows are interactive — press ↩ to open actions.
-- **List autocomplete**: type `/` anywhere in the text to trigger list suggestions. Press ↩ to select; the completed prefix is moved to the front of the text (e.g. `一个任务/dev` → `/Develop 一个任务`).
+- **List autocomplete**: type `/` anywhere in the text to trigger list suggestions. Press ↩ to select; the completed prefix is moved to the front of the text (e.g. `a task/dev` → `/Develop a task`).
 - **Date autocomplete**: type `@` anywhere to trigger `@today` / `@tomorrow` suggestions, same front-placement behaviour.
 - **Tag autocomplete**: type `#` anywhere to trigger suggestions from your tag history. Press ↩ to complete in-place; `⌘⇧⌫` to remove a tag from history.
 - **Add**: `⌘↩` from any row.
@@ -44,6 +44,6 @@ Prefixes can appear in any order and are space-separated. `!`, `@`, `/` prefixes
 
 ### Tags
 
-Apple has never exposed tag support in the Reminders scripting API. Instead of being stripped, `#tag` tokens are kept as-is in the reminder title (e.g. `/dev @today #app #web 买牛奶` → title is `#app #web 买牛奶`).
+Apple has never exposed tag support in the Reminders scripting API. Instead of being stripped, `#tag` tokens are kept as-is in the reminder title (e.g. `/dev @today #app #web Buy milk` → title is `#app #web Buy milk`).
 
 Tag autocomplete is powered by a local history: every tag you submit is saved (latest-first, max 50). Type `#` in the view command to see suggestions. Press `⌘⇧⌫` on any suggestion to remove it from history.
