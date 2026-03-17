@@ -55,7 +55,7 @@ tag   /.*(#\S*)/    → lastTagToken
 
 **List and date**: on selection the token is spliced out and the completed prefix is prepended to the front; an existing prefix of the same type at the front is replaced. `/` or `@` can be typed anywhere — the result always ends up at the front.
 
-**Tag**: on selection the token is replaced **in-place** with the completed tag + a space. The tag is not moved to the front because multiple tags are allowed and order within the title matters. Tag suggestions come from `tag-history.ts` (LocalStorage, max 50, latest-first). Each suggestion has a `⌘⌫` action to remove it from history.
+**Tag**: on selection the token is replaced **in-place** with the completed tag + a space. The tag is not moved to the front because multiple tags are allowed and order within the title matters. Tag suggestions come from `tag-history.ts` (LocalStorage, max 50, latest-first). Each suggestion has a `⌘⇧⌫` action to remove it from history.
 
 ## Do not
 

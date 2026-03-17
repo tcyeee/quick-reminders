@@ -64,7 +64,7 @@ List-based view (`<List searchText={text} filtering={false}>`). `text` is the si
 - List and date: token is removed from its position and the completed prefix is prepended to the front; an existing prefix of the same type at the front is replaced.
 - Tag: token is replaced **in-place** (no front-placement) with the completed tag followed by a space. Multiple tags are allowed so there is no "replace existing" step.
 
-**Tag history** (`tag-history.ts`): on every successful submit, `tags[]` from `ParsedInput` are saved to `LocalStorage` (latest-first, max 50). In the tag autocomplete section each suggestion has a `⌘⌫` action to remove it from history.
+**Tag history** (`tag-history.ts`): on every successful submit, `tags[]` from `ParsedInput` are saved to `LocalStorage` (latest-first, max 50). In the tag autocomplete section each suggestion has a `⌘⇧⌫` action to remove it from history.
 
 **Field interaction**: each parsed-preview row has an `ActionPanel` whose actions call `applyChange(patch)` → `reconstructInput` → `setText`.
 

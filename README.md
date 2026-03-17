@@ -17,7 +17,7 @@ Opens a dedicated form with a free-text input at the top and a live-parsed previ
 - **Priority / List / Due Date** rows are interactive — press ↩ to open actions.
 - **List autocomplete**: type `/` anywhere in the text to trigger list suggestions. Press ↩ to select; the completed prefix is moved to the front of the text (e.g. `一个任务/dev` → `/Develop 一个任务`).
 - **Date autocomplete**: type `@` anywhere to trigger `@today` / `@tomorrow` suggestions, same front-placement behaviour.
-- **Tag autocomplete**: type `#` anywhere to trigger suggestions from your tag history. Press ↩ to complete in-place; `⌘⌫` to remove a tag from history.
+- **Tag autocomplete**: type `#` anywhere to trigger suggestions from your tag history. Press ↩ to complete in-place; `⌘⇧⌫` to remove a tag from history.
 - **Add**: `⌘↩` from any row.
 
 ## Prefix syntax
@@ -46,4 +46,4 @@ Prefixes can appear in any order and are space-separated. `!`, `@`, `/` prefixes
 
 Apple has never exposed tag support in the Reminders scripting API. Instead of being stripped, `#tag` tokens are kept as-is in the reminder title (e.g. `/dev @today #app #web 买牛奶` → title is `#app #web 买牛奶`).
 
-Tag autocomplete is powered by a local history: every tag you submit is saved (latest-first, max 50). Type `#` in the view command to see suggestions. Press `⌘⌫` on any suggestion to remove it from history.
+Tag autocomplete is powered by a local history: every tag you submit is saved (latest-first, max 50). Type `#` in the view command to see suggestions. Press `⌘⇧⌫` on any suggestion to remove it from history.

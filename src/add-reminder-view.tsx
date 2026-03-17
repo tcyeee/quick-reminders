@@ -164,7 +164,7 @@ export default function AddReminderView() {
 
       {/* ── Tag autocomplete (↩ to select, ⌘⌫ to remove from history) ── */}
       {tagSuggestions.length > 0 && (
-        <List.Section title="Complete Tag  ·  ↩ to select  ·  ⌘⌫ to remove">
+        <List.Section title="Complete Tag  ·  ↩ to select  ·  ⌘⇧⌫ to remove">
           {tagSuggestions.map((t) => (
             <List.Item
               key={t}
@@ -176,7 +176,7 @@ export default function AddReminderView() {
                   <Action
                     title="Remove from History"
                     icon={Icon.Trash}
-                    shortcut={{ modifiers: ["cmd"], key: "delete" }}
+                    shortcut={{ modifiers: ["cmd", "shift"], key: "delete" }}
                     onAction={async () => {
                       await removeTagFromHistory(t);
                       revalidateTagHistory();
