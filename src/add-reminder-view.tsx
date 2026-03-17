@@ -86,7 +86,9 @@ export default function AddReminderView() {
   function completeTag(tagName: string) {
     if (!lastTagToken) return;
     const idx = text.lastIndexOf(lastTagToken);
-    setText((text.slice(0, idx) + `#${tagName} ` + text.slice(idx + lastTagToken.length)).replace(/\s+/g, " ").trimStart());
+    setText(
+      (text.slice(0, idx) + `#${tagName} ` + text.slice(idx + lastTagToken.length)).replace(/\s+/g, " ").trimStart(),
+    );
   }
 
   function applyChange(patch: Partial<typeof parsed>) {

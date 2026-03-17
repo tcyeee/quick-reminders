@@ -99,17 +99,20 @@ export function parseInput(raw: string): ParsedInput {
   let dueDateHasTime = false;
   let list: string | null = null;
 
-  // Each iteration consumes one prefix token; loop until no more prefixes found.
   let m: RegExpMatchArray | null;
+
+  // Priority must appear at the very start of the input.
+  if ((m = rest.match(PRIORITY_PREFIX_RE))) {
+    priority = PRIORITY_MAP[m[1]] ?? 0;
+    rest = rest.slice(m[0].length).trimStart();
+  }
+
+  // Remaining prefixes (@, /) can appear in any order.
   let changed = true;
   while (changed) {
     changed = false;
 
-    if ((m = rest.match(PRIORITY_PREFIX_RE))) {
-      priority = PRIORITY_MAP[m[1]] ?? 0;
-      rest = rest.slice(m[0].length).trimStart();
-      changed = true;
-    } else if ((m = rest.match(DATE_PREFIX_RE))) {
+    if ((m = rest.match(DATE_PREFIX_RE))) {
       const parsed = parseDueDateStr((m[1] ?? "today").trim());
       dueDate = parsed.date;
       dueDateHasTime = parsed.hasTime;
