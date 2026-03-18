@@ -15,7 +15,7 @@
   "license": "MIT",
   "commands": [
     {
-      "name": "quickly-add-todo",
+      "name": "quickly-add",
       "title": "Quickly Add Task to Reminders",
       "subtitle": "Apple Reminders",
       "description": "Quickly add tasks to Apple Reminders without opening the Reminders app.",
@@ -30,7 +30,7 @@
       ]
     },
     {
-      "name": "add-reminder-view",
+      "name": "add",
       "title": "Add Task to Reminders",
       "subtitle": "Apple Reminders",
       "description": "Add a reminder using a form with real-time prefix parsing.",

@@ -1,7 +1,7 @@
 import { LaunchProps, showHUD, showToast, Toast } from "@raycast/api";
-import { parseInput } from "./parse-input";
-import { addReminder } from "./add-reminder";
-import { saveTagsToHistory } from "./tag-history";
+import { parseInput } from "./utils/parse-input";
+import { addReminder } from "./utils/add-reminder";
+import { saveTagsToHistory } from "./utils/tag-history";
 
 export default async function Command(props: LaunchProps<{ arguments: { text: string } }>) {
   const raw = props.arguments.text.trim();

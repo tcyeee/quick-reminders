@@ -1,11 +1,11 @@
 import { List, ActionPanel, Action, showHUD, showToast, Toast, Color, Icon, useNavigation } from "@raycast/api";
 import { useCachedPromise } from "@raycast/utils";
 import { useState } from "react";
-import { parseInput, reconstructInput, ReminderPriority } from "./parse-input";
-import { addReminder } from "./add-reminder";
-import { getReminderLists } from "./get-reminder-lists";
-import { getTagHistory, saveTagsToHistory, removeTagFromHistory } from "./tag-history";
-import { getPrefixHistory, savePrefixToHistory, removePrefixFromHistory } from "./prefix-history";
+import { parseInput, reconstructInput, ReminderPriority } from "./utils/parse-input";
+import { addReminder } from "./utils/add-reminder";
+import { getReminderLists } from "./utils/get-reminder-lists";
+import { getTagHistory, saveTagsToHistory, removeTagFromHistory } from "./utils/tag-history";
+import { getPrefixHistory, savePrefixToHistory, removePrefixFromHistory } from "./utils/prefix-history";
 
 const PRIORITY_OPTIONS: { value: string; title: string }[] = [
   { value: "0", title: "None" },
@@ -146,7 +146,7 @@ export default function AddReminderView() {
           {prefixHistory.map((prefix) => (
             <List.Item
               key={prefix}
-              title={`${prefix} `}
+              title={`${prefix} [输入文本]`}
               icon={Icon.Clock}
               actions={
                 <ActionPanel>
