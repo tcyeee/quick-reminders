@@ -133,28 +133,20 @@ export default function AddReminderView() {
   const today = new Date();
   const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
 
-  function handleSelectionChange(id: string | null) {
-    if (id?.startsWith("history:")) {
-      setText(id.slice("history:".length) + " ");
-    }
-  }
-
   return (
     <List
       searchText={text}
       onSearchTextChange={setText}
-      onSelectionChange={handleSelectionChange}
       filtering={false}
       searchBarPlaceholder="!! @tomorrow /List Task title"
     >
       {/* ── Prefix history (shown when input is empty or matches a saved prefix) ── */}
       {showHistory && (
-        <List.Section title="Recent Prefixes  ·  ↓ to fill  ·  ⌘⇧⌫ to remove">
+        <List.Section title="Recent Prefixes  ·  ↩ to fill  ·  ⌘⇧⌫ to remove">
           {prefixHistory.map((prefix) => (
             <List.Item
               key={prefix}
-              id={`history:${prefix}`}
-              title={`${prefix}`}
+              title={`${prefix} [输入文本]`}
               icon={Icon.Clock}
               actions={
                 <ActionPanel>
