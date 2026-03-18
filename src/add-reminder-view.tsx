@@ -146,7 +146,7 @@ export default function AddReminderView() {
           {prefixHistory.map((prefix) => (
             <List.Item
               key={prefix}
-              title={`${prefix} [输入文本]`}
+              title={`${prefix} `}
               icon={Icon.Clock}
               actions={
                 <ActionPanel>
