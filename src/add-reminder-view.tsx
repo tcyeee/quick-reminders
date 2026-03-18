@@ -5,6 +5,7 @@ import { parseInput, reconstructInput, ReminderPriority } from "./parse-input";
 import { addReminder } from "./add-reminder";
 import { getReminderLists } from "./get-reminder-lists";
 import { getTagHistory, saveTagsToHistory, removeTagFromHistory } from "./tag-history";
+import { getPrefixHistory, savePrefixToHistory, removePrefixFromHistory } from "./prefix-history";
 
 const PRIORITY_OPTIONS: { value: string; title: string }[] = [
   { value: "0", title: "None" },
@@ -27,6 +28,7 @@ export default function AddReminderView() {
   const { pop } = useNavigation();
   const { data: lists = [] } = useCachedPromise(getReminderLists);
   const { data: tagHistory = [], revalidate: revalidateTagHistory } = useCachedPromise(getTagHistory);
+  const { data: prefixHistory = [], revalidate: revalidatePrefixHistory } = useCachedPromise(getPrefixHistory);
 
   const parsed = parseInput(text);
 
@@ -99,6 +101,13 @@ export default function AddReminderView() {
     setText(reconstructInput({ ...parsed, ...patch }));
   }
 
+  // The prefix string is everything except the non-tag title text: "!!! /dev @today #raycast #extension"
+  const prefixStr = reconstructInput({ ...parsed, title: parsed.tags.map((t) => `#${t}`).join(" ") }).trim();
+
+  // Show history when the input is empty or the text exactly matches a saved prefix (browsing mode).
+  const showHistory =
+    prefixHistory.length > 0 && (text.trim() === "" || prefixHistory.some((p) => text.trimEnd() === p));
+
   async function handleAdd() {
     if (!parsed.title.trim()) {
       await showToast({ style: Toast.Style.Failure, title: "Task title cannot be empty" });
@@ -106,6 +115,7 @@ export default function AddReminderView() {
     }
     await addReminder(parsed);
     if (parsed.tags.length > 0) await saveTagsToHistory(parsed.tags);
+    if (prefixStr) await savePrefixToHistory(prefixStr);
     await showHUD(`Added: ${parsed.title}`);
     pop();
   }
@@ -123,13 +133,49 @@ export default function AddReminderView() {
   const today = new Date();
   const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
 
+  function handleSelectionChange(id: string | null) {
+    if (id?.startsWith("history:")) {
+      setText(id.slice("history:".length) + " ");
+    }
+  }
+
   return (
     <List
       searchText={text}
       onSearchTextChange={setText}
+      onSelectionChange={handleSelectionChange}
       filtering={false}
       searchBarPlaceholder="!! @tomorrow /List Task title"
     >
+      {/* ── Prefix history (shown when input is empty or matches a saved prefix) ── */}
+      {showHistory && (
+        <List.Section title="Recent Prefixes  ·  ↓ to fill  ·  ⌘⇧⌫ to remove">
+          {prefixHistory.map((prefix) => (
+            <List.Item
+              key={prefix}
+              id={`history:${prefix}`}
+              title={`${prefix}`}
+              icon={Icon.Clock}
+              actions={
+                <ActionPanel>
+                  <Action title="Use Prefix" onAction={() => setText(prefix + " ")} />
+                  <Action
+                    title="Remove from History"
+                    icon={Icon.Trash}
+                    shortcut={{ modifiers: ["cmd", "shift"], key: "delete" }}
+                    onAction={async () => {
+                      await removePrefixFromHistory(prefix);
+                      revalidatePrefixHistory();
+                    }}
+                  />
+                  {addAction}
+                </ActionPanel>
+              }
+            />
+          ))}
+        </List.Section>
+      )}
+
       {/* ── List autocomplete (↩ to select, replaces /xxx with /ListName) ── */}
       {listSuggestions.length > 0 && (
         <List.Section title="Complete List Name  ·  ↩ to select">
