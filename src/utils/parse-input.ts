@@ -76,15 +76,27 @@ export function reconstructInput({ title, priority, dueDate, dueDateHasTime, lis
   if (list) parts.push(`/${list}`);
 
   if (dueDate) {
-    const y = dueDate.getFullYear();
-    const mo = String(dueDate.getMonth() + 1).padStart(2, "0");
-    const d = String(dueDate.getDate()).padStart(2, "0");
     if (dueDateHasTime) {
+      const y = dueDate.getFullYear();
+      const mo = String(dueDate.getMonth() + 1).padStart(2, "0");
+      const d = String(dueDate.getDate()).padStart(2, "0");
       const h = String(dueDate.getHours()).padStart(2, "0");
       const mi = String(dueDate.getMinutes()).padStart(2, "0");
       parts.push(`@${y}-${mo}-${d} ${h}:${mi}`);
     } else {
-      parts.push(`@${y}-${mo}-${d}`);
+      const now = new Date();
+      const todayMs = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      const tomorrowMs = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime();
+      if (dueDate.getTime() === todayMs) {
+        parts.push("@today");
+      } else if (dueDate.getTime() === tomorrowMs) {
+        parts.push("@tomorrow");
+      } else {
+        const y = dueDate.getFullYear();
+        const mo = String(dueDate.getMonth() + 1).padStart(2, "0");
+        const d = String(dueDate.getDate()).padStart(2, "0");
+        parts.push(`@${y}-${mo}-${d}`);
+      }
     }
   }
 
