@@ -67,11 +67,13 @@ function parseDueDateStr(dateStr: string): ParsedDate {
 
 const PRIORITY_PREFIX: Record<number, string> = { 1: "!!!", 5: "!!", 9: "!" };
 
-/** Reconstruct a raw prefix string from a ParsedInput (reverse of parseInput). */
+/** Reconstruct a raw prefix string from a ParsedInput (reverse of parseInput).
+ *  Canonical prefix order: ! → / → @ → title (tags stay embedded in title). */
 export function reconstructInput({ title, priority, dueDate, dueDateHasTime, list }: ParsedInput): string {
   const parts: string[] = [];
 
   if (priority && PRIORITY_PREFIX[priority]) parts.push(PRIORITY_PREFIX[priority]);
+  if (list) parts.push(`/${list}`);
 
   if (dueDate) {
     const y = dueDate.getFullYear();
@@ -86,7 +88,6 @@ export function reconstructInput({ title, priority, dueDate, dueDateHasTime, lis
     }
   }
 
-  if (list) parts.push(`/${list}`);
   if (title) parts.push(title);
 
   return parts.join(" ");

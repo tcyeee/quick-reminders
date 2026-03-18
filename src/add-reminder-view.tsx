@@ -45,11 +45,9 @@ export default function AddReminderView() {
   function completeList(listName: string) {
     if (!lastListToken) return;
     const idx = text.lastIndexOf(lastListToken);
-    // Remove the /xxx token from its current position and clean up spaces.
-    let rest = (text.slice(0, idx) + text.slice(idx + lastListToken.length)).replace(/\s+/g, " ").trim();
-    // Replace any existing list prefix already sitting at the front.
-    rest = rest.replace(/^\/\S+\s*/, "").trim();
-    setText(`/${listName} ${rest}`.trimStart());
+    const without = (text.slice(0, idx) + text.slice(idx + lastListToken.length)).replace(/\s+/g, " ").trim();
+    const reparsed = parseInput(without);
+    setText(reconstructInput({ ...reparsed, list: listName }) + " ");
   }
 
   // ── Date autocomplete ──────────────────────────────────────────────────────
@@ -66,10 +64,14 @@ export default function AddReminderView() {
   function completeDate(suggestion: string) {
     if (!lastDateToken) return;
     const idx = text.lastIndexOf(lastDateToken);
-    let rest = (text.slice(0, idx) + text.slice(idx + lastDateToken.length)).replace(/\s+/g, " ").trim();
-    // Replace any existing date prefix already sitting at the front.
-    rest = rest.replace(/^@\S+\s*/, "").trim();
-    setText(`@${suggestion} ${rest}`.trimStart());
+    const without = (text.slice(0, idx) + text.slice(idx + lastDateToken.length)).replace(/\s+/g, " ").trim();
+    const reparsed = parseInput(without);
+    const now = new Date();
+    const dueDate =
+      suggestion === "tomorrow"
+        ? new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
+        : new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    setText(reconstructInput({ ...reparsed, dueDate, dueDateHasTime: false }) + " ");
   }
 
   // ── Tag autocomplete ───────────────────────────────────────────────────────
@@ -86,9 +88,11 @@ export default function AddReminderView() {
   function completeTag(tagName: string) {
     if (!lastTagToken) return;
     const idx = text.lastIndexOf(lastTagToken);
-    setText(
-      (text.slice(0, idx) + `#${tagName} ` + text.slice(idx + lastTagToken.length)).replace(/\s+/g, " ").trimStart(),
-    );
+    const intermediate = (text.slice(0, idx) + `#${tagName} ` + text.slice(idx + lastTagToken.length))
+      .replace(/\s+/g, " ")
+      .trimStart();
+    const reparsed = parseInput(intermediate);
+    setText(reconstructInput(reparsed) + " ");
   }
 
   function applyChange(patch: Partial<typeof parsed>) {
